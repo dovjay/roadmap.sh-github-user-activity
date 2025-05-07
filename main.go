@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net/http"
-	"os"
+	"strings"
 	"time"
 )
 
@@ -36,8 +37,12 @@ func fetchEvents(username string) ([]GitHubEvent, error) {
 	return events, nil
 }
 
-func displayEvents(events []GitHubEvent) {
+func displayEvents(events []GitHubEvent, filter string) {
 	for _, event := range events {
+		if filter != "" && !strings.EqualFold(event.Type, filter) {
+			continue
+		}
+
 		switch event.Type {
 		case "PushEvent":
 			count := len(event.Payload.Commits)
@@ -57,12 +62,18 @@ func displayEvents(events []GitHubEvent) {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: github-activity <username>")
+	var eventType string
+	flag.StringVar(&eventType, "type", "", "Filter events by type (e.g., PushEvent)")
+	flag.Parse()
+
+	args := flag.Args()
+	if len(args) < 1 {
+		fmt.Println("Usage: github-activity <username> [--type=EventType]")
 		return
 	}
 
-	username := os.Args[1]
+	username := args[0]
+
 	events, err := fetchEvents(username)
 	if err != nil {
 		fmt.Println("Error fetching events:", err)
@@ -74,5 +85,5 @@ func main() {
 		return
 	}
 
-	displayEvents(events)
+	displayEvents(events, eventType)
 }
